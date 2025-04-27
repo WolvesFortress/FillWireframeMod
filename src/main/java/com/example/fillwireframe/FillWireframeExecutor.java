@@ -3,20 +3,27 @@ package com.example.fillwireframe;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.*;
 
 public class FillWireframeExecutor {
 	private static final int BLOCKS_PER_TICK = 1000;
+
 	private static Queue<BlockPos> queue = null;
 	private static ServerWorld world = null;
 	private static BlockState fillBlock = null;
+	private static ServerPlayerEntity player = null;
+	private static int totalBlocks = 0;
+	private static int placedBlocks = 0;
 
-	public static void start(ServerWorld targetWorld, BlockPos from, BlockPos to, Block targetBlock, BlockState insideFillBlock) {
+	public static void start(ServerWorld targetWorld, BlockPos from, BlockPos to, Block targetBlock, BlockState insideFillBlock, ServerPlayerEntity commandSourcePlayer) {
 		world = targetWorld;
 		fillBlock = insideFillBlock;
+		player = commandSourcePlayer;
 
 		Set<BlockPos> wireframe = new HashSet<>();
 		BlockPos.Mutable mutable = new BlockPos.Mutable();
@@ -43,28 +50,42 @@ public class FillWireframeExecutor {
 		Set<BlockPos> fillPositions = fastFloodFill(world, wireframe, from, to);
 
 		queue = new ArrayDeque<>(fillPositions);
+		totalBlocks = fillPositions.size();
+		placedBlocks = 0;
 
-		ServerTickEvents.END_SERVER_TICK.register(FillWireframeExecutor::tick);
+		if (queue.isEmpty()) {
+			player.sendMessage(Text.literal("[FillWireframe] No inside space detected to fill."), false);
+		} else {
+			ServerTickEvents.END_SERVER_TICK.register(FillWireframeExecutor::tick);
+		}
 	}
 
 	private static void tick(net.minecraft.server.MinecraftServer server) {
 		if (queue == null || world == null) {
-			return; // Nothing to do
+			return;
 		}
 
-		for (int i = 0; i < BLOCKS_PER_TICK && !queue.isEmpty(); i++) {
+		int placedThisTick = 0;
+		while (!queue.isEmpty() && placedThisTick < BLOCKS_PER_TICK) {
 			BlockPos pos = queue.poll();
 			if (pos != null) {
 				world.setBlockState(pos, fillBlock, Block.NOTIFY_ALL);
+				placedThisTick++;
+				placedBlocks++;
 			}
 		}
 
 		if (queue.isEmpty()) {
-			System.out.println("[FillWireframe] Finished filling.");
+			if (player != null) {
+				player.sendMessage(Text.literal("[FillWireframe] Finished! " + placedBlocks + " blocks placed."), false);
+			}
 			queue = null;
 			world = null;
 			fillBlock = null;
-			// No need to unregister from ServerTickEvents
+			player = null;
+			totalBlocks = 0;
+			placedBlocks = 0;
+//			ServerTickEvents.END_SERVER_TICK.unregister(FillWireframeExecutor::tick); // <-- manually unregister
 		}
 	}
 

@@ -26,7 +26,7 @@ public class FillWireframeCommand {
 													BlockState fillBlock = net.minecraft.block.Blocks.STONE.getDefaultState();
 
 													ServerWorld world = ctx.getSource().getWorld();
-													FillWireframeExecutor.start(world, from, to, targetBlock, fillBlock);
+													FillWireframeExecutor.start(world, from, to, targetBlock, fillBlock, ctx.getSource().getPlayer());
 
 													ctx.getSource().sendFeedback(() -> Text.literal("Started FillWireframe (default stone)"), true);
 													return 1;
@@ -39,7 +39,7 @@ public class FillWireframeCommand {
 															BlockState fillBlock = BlockStateArgumentType.getBlockState(ctx, "fillBlock").getBlockState();
 
 															ServerWorld world = ctx.getSource().getWorld();
-															FillWireframeExecutor.start(world, from, to, targetBlock, fillBlock);
+															FillWireframeExecutor.start(world, from, to, targetBlock, fillBlock, ctx.getSource().getPlayer());
 
 															ctx.getSource().sendFeedback(() -> Text.literal("Started FillWireframe"), true);
 															return 1;
