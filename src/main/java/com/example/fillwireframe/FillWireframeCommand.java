@@ -13,37 +13,37 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 
 public class FillWireframeCommand {
-    public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
-        dispatcher.register(
-                CommandManager.literal("fillwireframe")
-                        .then(CommandManager.argument("from", BlockPosArgumentType.blockPos())
-                                .then(CommandManager.argument("to", BlockPosArgumentType.blockPos())
-                                        .then(CommandManager.argument("targetBlock", BlockStateArgumentType.blockState(registryAccess))
-                                                .executes(ctx -> {
-                                                    BlockPos from = BlockPosArgumentType.getBlockPos(ctx, "from");
-                                                    BlockPos to = BlockPosArgumentType.getBlockPos(ctx, "to");
-                                                    Block targetBlock = BlockStateArgumentType.getBlockState(ctx, "targetBlock").getBlockState().getBlock();
-                                                    BlockState fillBlock = net.minecraft.block.Blocks.STONE.getDefaultState();
+	public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
+		dispatcher.register(
+				CommandManager.literal("fillwireframe")
+						.then(CommandManager.argument("from", BlockPosArgumentType.blockPos())
+								.then(CommandManager.argument("to", BlockPosArgumentType.blockPos())
+										.then(CommandManager.argument("targetBlock", BlockStateArgumentType.blockState(registryAccess))
+												.executes(ctx -> {
+													BlockPos from = BlockPosArgumentType.getBlockPos(ctx, "from");
+													BlockPos to = BlockPosArgumentType.getBlockPos(ctx, "to");
+													Block targetBlock = BlockStateArgumentType.getBlockState(ctx, "targetBlock").getBlockState().getBlock();
+													BlockState fillBlock = net.minecraft.block.Blocks.STONE.getDefaultState();
 
-                                                    ServerWorld world = ctx.getSource().getWorld();
-                                                    FillWireframeExecutor.start(world, from, to, targetBlock, fillBlock);
+													ServerWorld world = ctx.getSource().getWorld();
+													FillWireframeExecutor.start(world, from, to, targetBlock, fillBlock);
 
-                                                    ctx.getSource().sendFeedback(() -> Text.literal("Started FillWireframe (default stone)"), true);
-                                                    return 1;
-                                                })
-                                                .then(CommandManager.argument("fillBlock", BlockStateArgumentType.blockState(registryAccess))
-                                                        .executes(ctx -> {
-                                                            BlockPos from = BlockPosArgumentType.getBlockPos(ctx, "from");
-                                                            BlockPos to = BlockPosArgumentType.getBlockPos(ctx, "to");
-                                                            Block targetBlock = BlockStateArgumentType.getBlockState(ctx, "targetBlock").getBlockState().getBlock();
-                                                            BlockState fillBlock = BlockStateArgumentType.getBlockState(ctx, "fillBlock").getBlockState();
+													ctx.getSource().sendFeedback(() -> Text.literal("Started FillWireframe (default stone)"), true);
+													return 1;
+												})
+												.then(CommandManager.argument("fillBlock", BlockStateArgumentType.blockState(registryAccess))
+														.executes(ctx -> {
+															BlockPos from = BlockPosArgumentType.getBlockPos(ctx, "from");
+															BlockPos to = BlockPosArgumentType.getBlockPos(ctx, "to");
+															Block targetBlock = BlockStateArgumentType.getBlockState(ctx, "targetBlock").getBlockState().getBlock();
+															BlockState fillBlock = BlockStateArgumentType.getBlockState(ctx, "fillBlock").getBlockState();
 
-                                                            ServerWorld world = ctx.getSource().getWorld();
-                                                            FillWireframeExecutor.start(world, from, to, targetBlock, fillBlock);
+															ServerWorld world = ctx.getSource().getWorld();
+															FillWireframeExecutor.start(world, from, to, targetBlock, fillBlock);
 
-                                                            ctx.getSource().sendFeedback(() -> Text.literal("Started FillWireframe"), true);
-                                                            return 1;
-                                                        })))))
-        );
-    }
+															ctx.getSource().sendFeedback(() -> Text.literal("Started FillWireframe"), true);
+															return 1;
+														})))))
+		);
+	}
 }

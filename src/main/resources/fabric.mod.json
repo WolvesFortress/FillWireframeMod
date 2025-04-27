@@ -4,7 +4,9 @@
   "version": "1.0.0",
   "name": "Fill Wireframe Mod",
   "description": "Custom command to fill wireframes with blocks.",
-  "authors": ["inxomnyaa"],
+  "authors": [
+    "inxomnyaa"
+  ],
   "contact": {},
   "license": "MIT",
   "environment": "*",
