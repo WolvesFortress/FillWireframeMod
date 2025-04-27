@@ -1,12 +1,12 @@
 ## Usage
-Command:
+### Command:
 `/fillwireframe <from> <to> <targetBlock> [fillBlock]`
-Example:
+### Example:
 `/fillwireframe -11 -60 2 38 -33 52 minecraft:stone minecraft:oak_planks`
-Parameters:
-from/to: block coordinates
-targetBlock: the block your wireframe is made out of
-fillBlock: optional, the block you want it to be filled to (uses stone by default)
+### Parameters:
+- `from`/`to`: block coordinates
+- `targetBlock`: the block your wireframe is made out of
+- `fillBlock`: optional, the block you want it to be filled to (uses stone by default)
 ## Screenshots
 ![image](https://github.com/user-attachments/assets/614dea77-ffcc-43f6-b85d-63d022f843ba)
 ![image](https://github.com/user-attachments/assets/72808edd-27d4-4995-882e-617b27257de0)
