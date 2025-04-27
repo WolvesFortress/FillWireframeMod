@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "fillwireframe",
+  "version": "1.0.0",
+  "name": "Fill Wireframe Mod",
+  "description": "Custom command to fill wireframes with blocks.",
+  "authors": ["inxomnyaa"],
+  "contact": {},
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.example.fillwireframe.FillWireframeMod"
+    ]
+  },
+  "mixins": [],
+  "depends": {
+    "fabricloader": ">=0.15.3",
+    "minecraft": "1.20.4",
+    "fabric": "*"
+  }
+}
