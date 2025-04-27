@@ -18,3 +18,9 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:0.15.3"
     modImplementation "net.fabricmc.fabric-api:fabric-api:0.97.2+${project.minecraft_version}"
 }
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
