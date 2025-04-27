@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "fillwireframe",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "name": "Fill Wireframe Mod",
   "description": "Custom command to fill wireframes with blocks.",
   "authors": [

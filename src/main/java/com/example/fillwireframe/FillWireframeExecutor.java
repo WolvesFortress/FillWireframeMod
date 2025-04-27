@@ -25,9 +25,6 @@ public class FillWireframeExecutor {
 		fillBlock = insideFillBlock;
 		player = commandSourcePlayer;
 
-		Set<BlockPos> wireframe = new HashSet<>();
-		BlockPos.Mutable mutable = new BlockPos.Mutable();
-
 		int minX = Math.min(from.getX(), to.getX());
 		int maxX = Math.max(from.getX(), to.getX());
 		int minY = Math.min(from.getY(), to.getY());
@@ -35,29 +32,104 @@ public class FillWireframeExecutor {
 		int minZ = Math.min(from.getZ(), to.getZ());
 		int maxZ = Math.max(from.getZ(), to.getZ());
 
+		// Organize wireframe blocks by Y level
+		Map<Integer, List<BlockPos>> wireframeByLevel = new HashMap<>();
+
+		// Initialize the map for all Y levels in range
+		for (int y = minY; y <= maxY; y++) {
+			wireframeByLevel.put(y, new ArrayList<>());
+		}
+
+		// Collect all wireframe blocks
+		BlockPos.Mutable mutable = new BlockPos.Mutable();
 		for (int y = minY; y <= maxY; y++) {
 			for (int x = minX; x <= maxX; x++) {
 				for (int z = minZ; z <= maxZ; z++) {
 					mutable.set(x, y, z);
 					BlockState state = world.getBlockState(mutable);
 					if (state.getBlock() == targetBlock) {
-						wireframe.add(mutable.toImmutable());
+						wireframeByLevel.get(y).add(mutable.toImmutable());
 					}
 				}
 			}
 		}
 
-		Set<BlockPos> fillPositions = fastFloodFill(world, wireframe, from, to);
+		// Process each Y level and fill polygon
+		Set<BlockPos> allFillPositions = new HashSet<>();
 
-		queue = new ArrayDeque<>(fillPositions);
-		totalBlocks = fillPositions.size();
+		for (int y = minY; y <= maxY; y++) {
+			List<BlockPos> wireframeAtLevel = wireframeByLevel.get(y);
+			if (wireframeAtLevel.isEmpty()) {
+				continue;
+			}
+
+			Set<BlockPos> fillPositions = fillPolygonAtLevel(world, wireframeAtLevel, y, minX, maxX, minZ, maxZ);
+			allFillPositions.addAll(fillPositions);
+		}
+
+		queue = new ArrayDeque<>(allFillPositions);
+		totalBlocks = allFillPositions.size();
 		placedBlocks = 0;
 
 		if (queue.isEmpty()) {
 			player.sendMessage(Text.literal("[FillWireframe] No inside space detected to fill."), false);
 		} else {
+			player.sendMessage(Text.literal("[FillWireframe] Starting fill operation with " + totalBlocks + " blocks."), false);
 			ServerTickEvents.END_SERVER_TICK.register(FillWireframeExecutor::tick);
 		}
+	}
+
+	private static Set<BlockPos> fillPolygonAtLevel(ServerWorld world, List<BlockPos> wireframePoints, int y, int minX, int maxX, int minZ, int maxZ) {
+		Set<BlockPos> toFill = new HashSet<>();
+
+		// Scan each point in the bounding box
+		for (int x = minX; x <= maxX; x++) {
+			for (int z = minZ; z <= maxZ; z++) {
+				// Skip points that are already part of the wireframe
+				BlockPos pos = new BlockPos(x, y, z);
+				if (wireframePoints.contains(pos)) {
+					continue;
+				}
+
+				// Skip non-air blocks
+				if (!world.getBlockState(pos).isAir()) {
+					continue;
+				}
+
+				// Check if this point is inside the polygon formed by the wireframe
+				if (isPointInPolygon(x, z, wireframePoints)) {
+					toFill.add(pos);
+				}
+			}
+		}
+
+		return toFill;
+	}
+
+	// Implements the ray casting algorithm to determine if a point is inside a polygon
+	private static boolean isPointInPolygon(int x, int z, List<BlockPos> polygonPoints) {
+		boolean inside = false;
+		int j = polygonPoints.size() - 1;
+
+		for (int i = 0; i < polygonPoints.size(); i++) {
+			BlockPos pi = polygonPoints.get(i);
+			BlockPos pj = polygonPoints.get(j);
+
+			// Check if the point is on an edge
+			if (pi.getX() == x && pi.getZ() == z) {
+				return true;
+			}
+
+			// Ray casting algorithm
+			if ((pi.getZ() > z) != (pj.getZ() > z) &&
+					(x < (pj.getX() - pi.getX()) * (z - pi.getZ()) / (pj.getZ() - pi.getZ()) + pi.getX())) {
+				inside = !inside;
+			}
+
+			j = i;
+		}
+
+		return inside;
 	}
 
 	private static void tick(net.minecraft.server.MinecraftServer server) {
@@ -85,67 +157,12 @@ public class FillWireframeExecutor {
 			player = null;
 			totalBlocks = 0;
 			placedBlocks = 0;
-//			ServerTickEvents.END_SERVER_TICK.unregister(FillWireframeExecutor::tick); // <-- manually unregister
+//			ServerTickEvents.END_SERVER_TICK.unregister(FillWireframeExecutor::tick);
+		} else if (placedThisTick > 0 && player != null && placedBlocks % 10000 == 0) {
+			// Progress update for large fills
+			int percentComplete = (placedBlocks * 100) / totalBlocks;
+			player.sendMessage(Text.literal("[FillWireframe] Progress: " + percentComplete + "% (" +
+					placedBlocks + "/" + totalBlocks + " blocks)"), false);
 		}
-	}
-
-	private static Set<BlockPos> fastFloodFill(ServerWorld world, Set<BlockPos> wireframe, BlockPos from, BlockPos to) {
-		int minX = Math.min(from.getX(), to.getX());
-		int maxX = Math.max(from.getX(), to.getX());
-		int minY = Math.min(from.getY(), to.getY());
-		int maxY = Math.max(from.getY(), to.getY());
-		int minZ = Math.min(from.getZ(), to.getZ());
-		int maxZ = Math.max(from.getZ(), to.getZ());
-
-		Set<BlockPos> visited = new HashSet<>();
-		Queue<BlockPos.Mutable> queue = new ArrayDeque<>();
-		Set<BlockPos> toFill = new HashSet<>();
-
-		for (int x = minX; x <= maxX; x++) {
-			for (int z = minZ; z <= maxZ; z++) {
-				queue.add(new BlockPos.Mutable(x, minY, z));
-				queue.add(new BlockPos.Mutable(x, maxY, z));
-			}
-		}
-
-		while (!queue.isEmpty()) {
-			BlockPos.Mutable pos = queue.poll();
-			if (!visited.add(pos.toImmutable())) continue;
-			if (wireframe.contains(pos)) continue;
-			if (!isInBounds(pos, minX, maxX, minY, maxY, minZ, maxZ)) continue;
-
-			BlockState state = world.getBlockState(pos);
-			if (!state.isAir()) continue;
-
-			queue.add(new BlockPos.Mutable(pos.getX() + 1, pos.getY(), pos.getZ()));
-			queue.add(new BlockPos.Mutable(pos.getX() - 1, pos.getY(), pos.getZ()));
-			queue.add(new BlockPos.Mutable(pos.getX(), pos.getY() + 1, pos.getZ()));
-			queue.add(new BlockPos.Mutable(pos.getX(), pos.getY() - 1, pos.getZ()));
-			queue.add(new BlockPos.Mutable(pos.getX(), pos.getY(), pos.getZ() + 1));
-			queue.add(new BlockPos.Mutable(pos.getX(), pos.getY(), pos.getZ() - 1));
-		}
-
-		BlockPos.Mutable mutable = new BlockPos.Mutable();
-		for (int y = minY; y <= maxY; y++) {
-			for (int x = minX; x <= maxX; x++) {
-				for (int z = minZ; z <= maxZ; z++) {
-					mutable.set(x, y, z);
-					if (!visited.contains(mutable) && !wireframe.contains(mutable)) {
-						BlockState state = world.getBlockState(mutable);
-						if (state.isAir()) {
-							toFill.add(mutable.toImmutable());
-						}
-					}
-				}
-			}
-		}
-
-		return toFill;
-	}
-
-	private static boolean isInBounds(BlockPos pos, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
-		return pos.getX() >= minX && pos.getX() <= maxX &&
-				pos.getY() >= minY && pos.getY() <= maxY &&
-				pos.getZ() >= minZ && pos.getZ() <= maxZ;
 	}
 }
